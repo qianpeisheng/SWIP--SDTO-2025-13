@@ -141,7 +141,3 @@ Located in `library/requirements.txt`:
 - **Test Success Rate**: 100% (0 failures)
 - **Code Lines**: 1,153 lines in main application
 - **Documentation**: Comprehensive README and test reports
-
-## License
-
-This project is part of the SWIP2025 program.
