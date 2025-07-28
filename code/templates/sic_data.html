@@ -1,0 +1,934 @@
+{% extends 'base.html' %}
+
+{% block title %}Training Data Generation{% endblock %}
+
+{% block style %}
+{{ super() }}
+
+/* only blur col-3 when table has .blur-col3 */
+#rightTable.blur-col3 td:nth-child(3) {
+<!-- filter: blur(0px); -->
+<!-- display: inline-block; -->
+}
+
+/* Page-specific styles */
+
+nav a.predictive {
+background: #002E88;
+color: white;
+}
+
+nav a.training {
+background: white;
+color: #002E88;
+}
+
+#rightTable tbody tr:first-child {
+position: sticky;
+top: 0;
+background-color: #DDE6F0;
+z-index: 2;
+}
+
+.highlight-sic-row {
+background-color: #002E88;
+color: white;
+}
+
+.container {
+display: flex;
+padding: 20px;
+gap: 20px;
+}
+
+.table-container {
+background: #DDE6F0;
+border: 2px solid #002E88;
+overflow-x: auto;
+overflow-y: auto;
+padding: 10px;
+flex: 1;
+height: calc(100vh - 250px);
+}
+
+.left-table col {
+width: 11.11%;
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+table-layout: fixed;
+}
+
+th,
+td {
+border: 1px solid #aaa;
+padding: 5px;
+text-align: center;
+font-size: 12px;
+}
+
+th {
+background: #DDE6F0;
+}
+
+.subheader-6 {
+background: #FADADA;
+cursor: pointer;
+}
+
+.subheader-8 {
+background: #DAFAD2;
+cursor: pointer;
+}
+
+.row-even {
+background: #E8EDF4;
+}
+
+.row-odd {
+background: #F4F8FB;
+}
+
+.footnotes-container {
+display: flex;
+align-items: center;
+justify-content: center;
+min-height: 100px;
+margin-top: -20px;
+}
+
+.footnotes {
+padding: 0;
+font-size: 24px;
+text-align: left;
+width: 100%;
+}
+
+footer {
+margin-top: -120px;
+padding: 20px;
+text-align: center;
+}
+
+footer button {
+font-size: 16px;
+padding: 10px 20px;
+margin: 0 10px;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+}
+
+footer button.primary {
+background: #002E88;
+color: white;
+}
+
+#imageModal {
+display: none;
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.5);
+z-index: 9999;
+}
+
+#imageModal > div {
+background: white;
+margin: 5% auto;
+padding: 20px;
+width: 90%;
+max-width: 1400px;
+border-radius: 5px;
+position: relative;
+}
+
+#closeModal {
+position: absolute;
+top: 10px;
+right: 20px;
+cursor: pointer;
+font-size: 24px;
+}
+
+#imageGrid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+grid-gap: 10px;
+max-height: 1000px;
+overflow-y: auto;
+}
+
+/* hide any range‐tooltip that gets injected */
+.range-tooltip {
+display: none !important;
+}
+
+{% endblock %}
+
+{% block header %}
+<header>
+  <div class="header-left">
+    <nav>
+      <a class="training" href="/sic_data">Training Data Generation (Process 1)</a>
+      <a class="predictive" id="predictiveLink" href="#">Predictive model (Process 1)</a>
+    </nav>
+  </div>
+  <div class="header-right">
+    <a href="/" class="title-link">A*STAR DOE Pathfinder</a>
+  </div>
+</header>
+{% endblock %}
+{% block body %}
+
+<body>
+  <div class="container">
+    <!-- Left Table: DOE Tabs with clickable cells -->
+    <div class="table-container">
+      <table class="left-table">
+        <colgroup>
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+          <col style="width:11.11%;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th rowspan="2">DOE</th>
+            <th colspan="4">6-inch</th>
+            <th colspan="4">8-inch</th>
+          </tr>
+          <tr>
+            <th class="subheader-6">E‑DB</th>
+            <th class="subheader-6">S‑DB</th>
+            <th class="subheader-6" style="cursor:pointer;">R1 Response 1</th>
+            <th class="subheader-6" style="cursor:pointer;">R2 Response 2</th>
+            <th class="subheader-8">E‑DB</th>
+            <th class="subheader-8">S‑DB</th>
+            <th class="subheader-8">R1 Response 1</th>
+            <th class="subheader-8">R2 Response 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(1, 201) %}
+          <tr class="{{ 'row-even' if i % 2 == 0 else 'row-odd' }}">
+            <td>DOE {{ i }}</td>
+            <td id="{% if i in loaded_6E %}cell_{{ i }}_6E{% endif %}"
+              onclick="cellClicked('{{ i }}', 'excel', '6E', this)" {% if i in loaded_6E %} class="loaded"
+              style="background-color: {% if i == 1 %}#FFA500{% else %}#FFD580{% endif %};" {% endif %}>
+              &nbsp;
+            </td>
+            <!-- 6 inch S‑DB -->
+            <td onclick="cellClicked('{{ i }}', 'excel', '6S', this)">
+              &nbsp;
+            </td>
+            <!-- 6 inch R 1; preloaded for DOE 1–47 -->
+            <td onclick="cellClicked('{{ i }}', 'txt', '6R1', this)" {% if i|int <=47 %} class="loaded"
+              style="background-color: #FFD580;" {% endif %}>
+              &nbsp;
+            </td>
+            <!-- 6 inch R2 (Doping) -->
+            <td onclick="cellClicked('{{ i }}', 'txt', '6R2', this)" {% if i|int <=47 %} class="loaded"
+              style="background-color: #FFD580;" {% endif %}>
+              &nbsp;
+            </td>
+            <!-- 8 inch E‑DB -->
+            <td onclick="cellClicked('{{ i }}', 'excel', '8E', this)">
+              &nbsp;
+            </td>
+            <!-- 8 inch S‑DB -->
+            <td onclick="cellClicked('{{ i }}', 'excel', '8S', this)">
+              &nbsp;
+            </td>
+            <!-- 8 inch R 1 -->
+            <td onclick="cellClicked('{{ i }}', 'txt', '8R1', this)">
+              &nbsp;
+            </td>
+            <!-- 8 inch R 2 -->
+            <td onclick="cellClicked('{{ i }}', 'txt', '8R2', this)">
+              &nbsp;
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Right Table: Initially empty; loaded table cells will be editable -->
+    <div class="table-container">
+      <table id="rightTable">
+        <!-- Colgroup for right table generated dynamically -->
+        <tbody id="rightTableBody">
+          <!-- Loaded data will appear here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="fileInput" style="display:none" />
+  <!-- Hidden anchor for download -->
+  <a id="saveLink" style="display: none;"></a>
+
+  <!-- Footnotes Container -->
+  <div class="footnotes">
+    <ul>
+      <li><strong>E‑DB</strong>: Experimental Data</li>
+      <li><strong>S‑DB</strong>: Simulated Data</li>
+      <li><strong>R1</strong>: Response Parameters 1</li>
+      <li><strong>R2</strong>: Response Parameters 2</li>
+    </ul>
+  </div>
+
+  <footer>
+    <button class="primary" id="saveTableButton">Save</button>
+    <button class="primary" id="deleteTableButton">Delete</button>
+    <button class="primary" id="undoButton">Undo</button>
+  </footer>
+
+  <!-- Image Popup Modal -->
+  <div id="imageModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:9999;">
+    <div
+      style="background:white; margin:5% auto; padding:20px; width:80%; max-width:1000px; border-radius:5px; position:relative;">
+      <span id="closeModal"
+        style="position:absolute; top:10px; right:20px; cursor:pointer; font-size:24px;">&times;</span>
+      <div id="imageGrid" style="display:grid; grid-template-columns: repeat(6, 1fr); grid-gap:10px;">
+        <!-- 16 placeholder images will be added dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Script Block -->
+  <script>
+    // Global variables
+    var currentDOE = null;
+    var currentFileType = null;
+    var currentCellId = null;
+    var currentCellElement = null;
+    var currentActiveCell = null;
+    var currentActiveCellId = null;
+    var undoStack = [];
+
+    // Helper to update a given stack in localStorage.
+    function updateStack(stackKey, cellId) {
+      // Retrieve the existing stack (or use an empty array if not present)
+      var stack = JSON.parse(localStorage.getItem(stackKey) || "[]");
+      // Remove any existing occurrence of this cellId
+      stack = stack.filter(id => id !== cellId);
+      // Push the new cellId so that the last element is the most recent.
+      stack.push(cellId);
+      localStorage.setItem(stackKey, JSON.stringify(stack));
+    }
+
+    function updateActiveCell(newCell, newCellId) {
+      // Set all loaded cells to light orange.
+      var loadedCells = document.querySelectorAll("td.loaded");
+      loadedCells.forEach(function (cell) {
+        cell.style.backgroundColor = "#FFD580";
+      });
+      // Set the new active cell to dark orange.
+      newCell.style.backgroundColor = "#FFA500";
+      currentActiveCell = newCell;
+      currentActiveCellId = newCellId;
+
+      // Define which suffixes identify source parameter tables.
+      var sourceSuffixes = ["6E", "6S", "8E", "8S"];
+      if (sourceSuffixes.some(suffix => newCellId.endsWith(suffix))) {
+        updateStack("sourceStack", newCellId);
+      } else if (newCellId.endsWith("R1")) {
+        updateStack("r1Stack", newCellId);
+      } else if (newCellId.endsWith("R2")) {
+        updateStack("r2Stack", newCellId);
+      }
+    }
+
+    // Dynamically adjust the right table columns.
+    function adjustRightTableColumns() {
+      var table = document.getElementById("rightTable");
+      var tbody = document.getElementById("rightTableBody");
+      if (tbody.rows.length > 0) {
+        var colCount = tbody.rows[0].cells.length;
+        var colgroup = document.createElement("colgroup");
+        for (var i = 0; i < colCount; i++) {
+          var col = document.createElement("col");
+          // The Command column is the third column (i === 2 because of zero-indexing)
+          if (i === 2) {
+            col.style.width = "25%";  // Make the Command column wider
+          } else {
+            // Distribute the remaining 75% equally among the other columns
+            col.style.width = (75 / (colCount - 1)) + "%";
+          }
+          colgroup.appendChild(col);
+        }
+        var existing = table.querySelector("colgroup");
+        if (existing) { table.removeChild(existing); }
+        table.insertBefore(colgroup, table.firstChild);
+      }
+    }
+    function highlightSiCRow() {
+      const rows = document.querySelectorAll('#rightTableBody tr');
+      rows.forEach(function (row) {
+        // Check if the row contains both keywords
+        if (row.textContent.includes("SiC Epitaxy Thickness") && row.textContent.includes("N Doping Uniformity")) {
+          row.classList.add("highlight-sic-row");
+          // Remove the dark blue background for cells that contain numeric values
+          row.querySelectorAll("td").forEach(function (cell) {
+            // Trim the text and check if it’s a number (ignoring empty cells)
+            const cellText = cell.textContent.trim();
+            if (cellText !== "" && !isNaN(cellText)) {
+              // Remove any inline background or text color so numeric cells show normally
+              cell.style.backgroundColor = "";
+              cell.style.color = "";
+            }
+          });
+        }
+      });
+    }
+
+    // Fetch cached table data from the server.
+    function fetchCachedData(uniqueId) {
+      fetch('/get_cached_data?cell_id=' + encodeURIComponent(uniqueId))
+        .then(response => response.text())
+        .then(html => {
+          const table = document.getElementById('rightTable');
+          document.getElementById('rightTableBody').innerHTML = html;
+          adjustRightTableColumns();
+          attachCellUpdateListeners();
+          attachRangeTooltips();
+          relabelFirstRow();           // ← here
+          updateLastColumnTypes();    // ← add this
+          updateParameterLabels();    // ← add this line
+          // ↓ use this instead of randomizeTable()
+          randomizeAndAppend();
+          // toggle blur only for non-response tables
+          if (uniqueId.endsWith('R1') || uniqueId.endsWith('R2')) {
+            table.classList.remove('blur-col3');
+          } else {
+            table.classList.add('blur-col3');
+          }
+        })
+        .catch(error => console.error('Error fetching cached data:', error));
+    }
+
+    // Handler for cell clicks.
+    function cellClicked(doe, fileType, cellCode, cell) {
+      // For header cells, they now have their own onclick (see HTML) so this function is for table cells.
+      var uniqueId = doe + "_" + cellCode;
+      if (cell.classList.contains("loaded")) {
+        updateActiveCell(cell, uniqueId);
+        fetchCachedData(uniqueId);
+      } else {
+        currentDOE = doe;
+        currentFileType = fileType;
+        currentCellId = uniqueId;
+        currentCellElement = cell;
+        document.getElementById('fileInput').click();
+      }
+    }
+
+    // File upload handler.
+    document.getElementById('fileInput').addEventListener('change', function (event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var formData = new FormData();
+      formData.append('doe', currentDOE);
+      formData.append('fileType', currentFileType);
+      formData.append('cell_id', currentCellId);
+      formData.append('file', file);
+
+      fetch('/upload_data', { method: 'POST', body: formData })
+        .then(function (response) { return response.text(); })
+        .then(function (html) {
+          document.getElementById('rightTableBody').innerHTML = html;
+          adjustRightTableColumns();
+          currentCellElement.classList.add("loaded");
+          updateActiveCell(currentCellElement, currentCellId);
+          attachCellUpdateListeners();
+          relabelFirstRow();           // ← here too
+          updateLastColumnTypes();    // ← add this
+          updateParameterLabels();    // ← add this line
+          // ↓ use this instead of randomizeTable()
+          randomizeAndAppend();
+          document.getElementById('fileInput').value = "";
+        })
+        .catch(function (error) { console.error('Error uploading file:', error); });
+    });
+
+    // Attach focus and blur listeners to enable undo.
+    function attachCellUpdateListeners() {
+      var cells = document.querySelectorAll("#rightTableBody td[contenteditable='true']");
+      cells.forEach(function (cell) {
+        cell.addEventListener('focus', function () {
+          cell.dataset.oldValue = cell.innerText;
+        });
+        cell.addEventListener('blur', function () {
+          var oldVal = cell.dataset.oldValue;
+          var newVal = cell.innerText;
+          if (newVal !== oldVal) {
+            undoStack.push({
+              cell: cell,
+              cellId: currentActiveCellId,
+              row: cell.getAttribute("data-row"),
+              col: cell.getAttribute("data-col"),
+              oldValue: oldVal,
+              newValue: newVal
+            });
+            updateCellInCache(currentActiveCellId, cell.getAttribute("data-row"), cell.getAttribute("data-col"), newVal);
+          }
+        });
+      });
+    }
+
+    // Send updated cell value to the server.
+    function updateCellInCache(cellId, row, col, newValue) {
+      fetch('/update_cell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cell_id: cellId, row: row, col: col, new_value: newValue })
+      })
+        .then(function (response) { return response.json(); })
+        .then(function (data) { if (data.status !== "success") console.error("Failed to update cell:", data.message); })
+        .catch(function (error) { console.error("Error updating cell:", error); });
+    }
+
+    // Save button: triggers native download using a hidden anchor.
+    document.getElementById('saveTableButton').addEventListener('click', function () {
+      if (!currentActiveCellId) {
+        alert("No table data loaded.");
+        return;
+      }
+      var parts = currentActiveCellId.split('_');
+      var doe = parts[0];
+      var suffix = parts[1];
+      var defaultFileName;
+      if (["6E", "8E", "6S", "8S"].indexOf(suffix) !== -1) {
+        defaultFileName = "DOE_" + doe + ".xlsx";
+      } else {
+        defaultFileName = currentActiveCellId + ".txt";
+      }
+      var saveLink = document.getElementById('saveLink');
+      saveLink.href = '/save_table?cell_id=' + encodeURIComponent(currentActiveCellId) +
+        '&file_name=' + encodeURIComponent(defaultFileName);
+      saveLink.download = defaultFileName;
+      saveLink.click();
+    });
+
+    function removeCellFromStacks(cellId) {
+      var stacks = ["sourceStack", "r1Stack", "r2Stack"];
+      stacks.forEach(function (stackKey) {
+        var stack = JSON.parse(localStorage.getItem(stackKey) || "[]");
+        // Remove all occurrences of the cellId
+        stack = stack.filter(id => id !== cellId);
+        localStorage.setItem(stackKey, JSON.stringify(stack));
+      });
+    }
+
+
+    // Delete button: removes the table from memory and clears the right table.
+    document.getElementById('deleteTableButton').addEventListener('click', function () {
+      if (!currentActiveCellId) {
+        alert("No table data loaded.");
+        return;
+      }
+      fetch('/delete_table?cell_id=' + encodeURIComponent(currentActiveCellId))
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          if (data.status === "deleted") {
+            if (currentActiveCell) {
+              currentActiveCell.removeAttribute("style");
+              currentActiveCell.classList.remove("loaded");
+            }
+            document.getElementById('rightTableBody').innerHTML = "";
+            // Remove the deleted cell from all stacks.
+            removeCellFromStacks(currentActiveCellId);
+            // Optionally, clear currentActiveCell variables if desired.
+            currentActiveCell = null;
+            currentActiveCellId = null;
+          } else {
+            alert("Table not found in cache.");
+          }
+        })
+        .catch(function (error) { console.error("Error deleting table:", error); });
+    });
+
+
+    // Undo button: reverts the most recent cell edit.
+    document.getElementById('undoButton').addEventListener('click', function () {
+      if (undoStack.length === 0) {
+        alert("Nothing to undo.");
+        return;
+      }
+      var lastChange = undoStack.pop();
+      lastChange.cell.innerText = lastChange.oldValue;
+      updateCellInCache(lastChange.cellId, lastChange.row, lastChange.col, lastChange.oldValue);
+    });
+
+    // On DOMContentLoaded, load default DOE 1 E‑DB data and mark its cell active.
+    window.addEventListener('DOMContentLoaded', function () {
+      fetchCachedData('1_6E');
+      var leftCell = document.getElementById('cell_1_6E');
+      if (leftCell) {
+        updateActiveCell(leftCell, '1_6E');
+      }
+    });
+
+    // Predictive link click handler.
+    document.getElementById('predictiveLink').addEventListener('click', function (e) {
+      e.preventDefault();
+      var cell_id = currentActiveCellId || '1_6E';
+      window.location.href = '/sic_model?cell_id=' + encodeURIComponent(cell_id);
+    });
+
+    function showImagePopup(cellCode) {
+      var modal = document.getElementById("imageModal");
+      var grid = document.getElementById("imageGrid");
+      grid.innerHTML = "";
+
+      // Determine folder based on cellCode.
+      var folder = "";
+      if (cellCode === "6R1") {
+        folder = "training_data_generation_6_inch_R_1_thickness";
+      } else if (cellCode === "6R2") {
+        folder = "training_data_generation_6_inch_R_2_doping";
+      } else {
+        folder = "training_data_generation_6_inch_R_1_thickness";
+      }
+
+      // Use the currentDOE global variable; default to "1" if not set.
+      var doeValue = (typeof currentDOE !== 'undefined' && currentDOE) ? currentDOE : "1";
+
+      fetch('/get_images?folder=' + folder)
+        .then(function (response) { return response.json(); })
+        .then(function (imageFiles) {
+          if (imageFiles.length === 0) {
+            grid.innerHTML = "No images found.";
+          } else {
+            imageFiles.forEach(function (fileName, index) {
+              var container = document.createElement("div");
+              container.style.textAlign = "center";
+              // Remove any suffix regardless of cellCode.
+              var label = document.createElement("div");
+              label.textContent = "DOE " + (index + 1);
+              label.style.fontWeight = "bold";
+              label.style.marginBottom = "5px";
+
+              var img = document.createElement("img");
+              img.src = "/static/" + folder + "/" + fileName;
+              img.alt = fileName;
+              img.style.width = "80%";
+              img.style.height = "auto";
+
+              container.appendChild(label);
+              container.appendChild(img);
+              grid.appendChild(container);
+            });
+          }
+          modal.style.display = "block";
+        })
+        .catch(function (error) {
+          console.error("Error loading images: ", error);
+          grid.innerHTML = "Error loading images.";
+          modal.style.display = "block";
+        });
+    }
+
+    // Close the modal when the close button is clicked.
+    document.getElementById("closeModal").addEventListener("click", function () {
+      document.getElementById("imageModal").style.display = "none";
+    });
+
+    // Optional: close modal if clicking outside the inner container.
+    window.addEventListener("click", function (event) {
+      var modal = document.getElementById("imageModal");
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    });
+  </script>
+  <script>
+    // End of scripts.
+  </script>
+  <!-- Add this script block (or append to an existing one) -->
+  <script>
+    // Global variable to store range information.
+    var cellRanges = null;
+
+    // Load the ranges.json data from the server (assumes a /get_ranges route).
+    fetch('/get_ranges')
+      .then(response => {
+        if (response.ok) return response.json();
+        else throw new Error("Ranges not available");
+      })
+      .then(data => {
+        cellRanges = data;
+      })
+      .catch(error => {
+        console.log("Range info not available:", error);
+        cellRanges = null;
+      });
+
+  </script>
+
+  <!-- (Optional) Add CSS for your tooltip in your style block -->
+  <style>
+    .range-tooltip {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+  </style>
+
+  <!-- ...existing code... -->
+
+  <script>
+    // Global variable to store range information and the current tooltip.
+    var cellRanges = null;
+    var currentTooltip = null;
+
+    // Load the range data from the standard ranges.json file for SiC data page
+    fetch('/get_ranges')
+      .then(response => {
+        if (response.ok) return response.json();
+        else throw new Error("Ranges not available");
+      })
+      .then(data => {
+        cellRanges = data;
+        console.log("Loaded Excel ranges for tooltips");
+      })
+      .catch(error => {
+        console.log("Range info not available:", error);
+        cellRanges = null;
+      });
+
+    // Function to remove any existing tooltip
+    function removeCurrentTooltip() {
+      if (currentTooltip) {
+        try {
+          document.body.removeChild(currentTooltip);
+        } catch (e) {
+          // Element might have been removed already
+        }
+        currentTooltip = null;
+      }
+    }
+
+    // Attach tooltip event listeners to cells in the right table.
+    function attachRangeTooltips() {
+      // Only attach if range info is available.
+      if (!cellRanges) return;
+      var cells = document.querySelectorAll("#rightTableBody td");
+      cells.forEach(function (cell) {
+        cell.addEventListener("mouseover", function (event) {
+          // Remove any existing tooltip first
+          removeCurrentTooltip();
+
+          var row = cell.getAttribute("data-row");
+          var col = cell.getAttribute("data-col");
+          if (!row || !col) return;
+          var rowKey = "row_" + row;
+          var colKey = "col_" + col;
+          if (cellRanges[rowKey] && cellRanges[rowKey][colKey]) {
+            var range = cellRanges[rowKey][colKey];
+            // Create a tooltip div.
+            var tooltip = document.createElement("div");
+            tooltip.className = "range-tooltip";
+
+            // Include step size information if available
+            var tooltipText = "Range: " + range.min + " to " + range.max;
+            if (range.step !== null && range.step !== undefined) {
+              tooltipText += "<br>Step Size: " + range.step;
+            }
+
+            tooltip.innerHTML = tooltipText;
+            // Basic inline styles for the tooltip.
+            tooltip.style.position = "absolute";
+            tooltip.style.backgroundColor = "#ffffe0";
+            tooltip.style.border = "1px solid #ccc";
+            tooltip.style.padding = "5px";
+            tooltip.style.fontSize = "12px";
+            tooltip.style.zIndex = "1000";
+            tooltip.style.borderRadius = "3px";
+            tooltip.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+            document.body.appendChild(tooltip);
+            // Position the tooltip near the mouse.
+            tooltip.style.left = (event.pageX + 10) + "px";
+            tooltip.style.top = (event.pageY + 10) + "px";
+
+            // Store the current tooltip globally
+            currentTooltip = tooltip;
+          }
+        });
+
+        cell.addEventListener("mousemove", function (event) {
+          if (currentTooltip) {
+            currentTooltip.style.left = (event.pageX + 10) + "px";
+            currentTooltip.style.top = (event.pageY + 10) + "px";
+          }
+        });
+
+        cell.addEventListener("mouseout", function (event) {
+          // Check if we're moving to another element
+          var relatedTarget = event.relatedTarget;
+          // If we're not moving to the tooltip itself, remove it
+          if (!relatedTarget || !currentTooltip || !currentTooltip.contains(relatedTarget)) {
+            removeCurrentTooltip();
+          }
+        });
+      });
+    }
+
+    // After the table HTML has been rendered, relabel column-3 cells
+    function updateParameterLabels() {
+
+      // if we don’t know what’s loaded yet, or it’s a response (R1/R2), skip
+      if (!currentActiveCellId
+        || currentActiveCellId.endsWith('R1')
+        || currentActiveCellId.endsWith('R2')) {
+        return;
+      }
+
+      const rows = document.querySelectorAll('#rightTableBody tr');
+      // start at i=1 so that the *second* <tr> gets “Parameter 1”
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const cell = row.cells[2];
+        if (cell) {
+          cell.textContent = `Parameter ${i}`;
+        }
+      }
+    }
+
+
+    // After you render the new table, call this to relabel the first row
+    function relabelFirstRow() {
+      const tbody = document.getElementById('rightTableBody');
+      const firstRow = tbody.querySelector('tr:first-child');
+      if (!firstRow) return;
+      Array.from(firstRow.cells).forEach((cell, idx) => {
+        cell.textContent = `Column ${idx + 1}`;
+      });
+    }
+
+
+    // Call after you render or re-render the table
+    // Right-table version
+    function updateLastColumnTypes() {
+      const map = { bell: 'Type 1', vent: 'Type 2', on: 'Type 3' };
+      document
+        .querySelectorAll('#rightTableBody tr:not(:first-child)')
+        .forEach(row => {
+          const cell = row.cells[row.cells.length - 1];
+          if (!cell) return;
+          const out = cell.textContent
+            .trim()
+            .split('/')
+            .map(s => s.trim().toLowerCase())
+            .map(k => map[k] || k)
+            .join('/ ');
+          cell.textContent = out;
+        });
+    }
+
+    // ...existing code...
+  </script>
+
+  <!-- ...existing code... -->
+
+  <script>
+    /**
+     * Replace cell contents with random ints depending on table type.
+     * – Source parameter tables (suffix 6E,6S,8E,8S): rows ≥1, cols ≥3
+     * – Response tables (suffix R1,R2):       rows ≥1, cols ≥1
+     */
+    function randomizeTable() {
+      if (!currentActiveCellId) return;
+      const isSource = /_(6E|6S|8E|8S)$/.test(currentActiveCellId);
+      const isResponse = currentActiveCellId.endsWith('R1')
+        || currentActiveCellId.endsWith('R2');
+      if (!isSource && !isResponse) return;
+      // grab all rows
+      const rows = document.querySelectorAll('#rightTableBody tr');
+      rows.forEach((row, i) => {
+        // skip first row (i===0)
+        if (i === 0) return;
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, j) => {
+          if (isSource && j >= 3) {
+            cell.textContent = Math.floor(Math.random() * 1001);
+          }
+          else if (isResponse && j >= 1) {
+            cell.textContent = Math.floor(Math.random() * 1001);
+          }
+        });
+      });
+    }
+  </script>
+
+  <script>
+    /**
+     * Randomize existing cells and then, for source tables only, append 6 new rows
+     * numbered 90–95 with:
+     *  • col 1 = row number
+     *  • col 2 = (empty)
+     *  • col 3 = "Parameter X"
+     *  • col 4+ = random ints 0–1000
+     */
+    function randomizeAndAppend() {
+      if (!currentActiveCellId) return;
+      const isSource = /(6E|6S|8E|8S)$/.test(currentActiveCellId);
+      const isResponse = /(R1|R2)$/.test(currentActiveCellId);
+      if (!isSource && !isResponse) return;
+
+      // 1) randomize existing rows
+      document
+        .querySelectorAll('#rightTableBody tr')
+        .forEach((row, i) => {
+          if (i === 0) return; // skip header
+          row.querySelectorAll('td').forEach((cell, j) => {
+            if (isSource && j >= 3) {
+              cell.textContent = Math.floor(Math.random() * 1001);
+            }
+            else if (isResponse && j >= 1) {
+              cell.textContent = Math.floor(Math.random() * 1001);
+            }
+          });
+        });
+
+      // 2) if it’s a source table, append 6 new rows 90→95
+      if (isSource) {
+        const tbody = document.getElementById('rightTableBody');
+        // how many columns we have (use header row)
+        const colCount = tbody.rows[0].cells.length;
+        for (let k = 0; k < 6; k++) {
+          const newRow = document.createElement('tr');
+          const rowNum = 90 + k;
+          for (let j = 0; j < colCount; j++) {
+            const td = document.createElement('td');
+            if (j === 0) {
+              td.textContent = rowNum;
+            } else if (j === 1) {
+              td.textContent = '';
+            } else if (j === 2) {
+              td.textContent = `Parameter ${rowNum}`;
+            } else {
+              td.textContent = Math.floor(Math.random() * 1001);
+            }
+            newRow.appendChild(td);
+          }
+          tbody.appendChild(newRow);
+        }
+      }
+    }
+  </script>
+
+
+</body>
+{% endblock %}

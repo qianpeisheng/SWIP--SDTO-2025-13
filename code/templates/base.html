@@ -1,0 +1,103 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>{% block title %}ASTAR-I{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='astar_logo_64.jpg') }}" type="image/png">
+
+    <style>
+        {% block style %}
+        /* Global Styling */
+        .segment-table {
+        border-collapse: collapse;
+        margin-bottom: 1em;
+        width: max-content;
+        }
+        .segment-table th,
+        .segment-table td {
+        border: 1px solid #aaa;
+        padding: 5px;
+        white-space: nowrap;
+        background: #DDE6F0;
+        }
+        .segment-table th:first-child,
+        .segment-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: #DDE6F0;
+        z-index: 2;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: white;
+        }
+
+        /* Header Styling (conditionally included) */
+        header {
+            background: #002E88;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left, .header-right {
+            display: flex;
+            align-items: center;
+        }
+
+        nav a {
+            margin-right: 10px;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        .title-link {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 24px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .highlight-cell {
+            background-color: #FFD580;
+        }
+
+        /* Tooltip styling */
+        .range-tooltip {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            background-color: #ffffe0;
+            border: 1px solid #ccc;
+            padding: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            position: absolute;
+        }
+        
+        {% endblock %}
+    </style>
+
+    {% block head_extra %}
+    {% endblock %}
+</head>
+<body>
+    {% block header %}
+    <!-- This block can be overridden by pages needing the header -->
+    {% endblock %}
+
+    {% block body %}
+    {% endblock %}
+</body>
+</html>

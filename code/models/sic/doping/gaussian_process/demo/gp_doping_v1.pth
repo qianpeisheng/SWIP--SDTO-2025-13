@@ -1,0 +1,6 @@
+# Dummy Gaussian Process Doping Model File
+# This is a placeholder file for demo purposes
+model_version: "v1.0"
+model_type: "gaussian_process"
+target: "doping"
+created_date: "2025-07-26"

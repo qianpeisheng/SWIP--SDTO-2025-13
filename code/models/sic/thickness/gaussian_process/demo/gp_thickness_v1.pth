@@ -1,0 +1,7 @@
+# Dummy Gaussian Process Thickness Model File
+# This is a placeholder file for demo purposes
+# Real model would contain trained parameters
+model_version: "v1.0"
+model_type: "gaussian_process"
+target: "thickness"
+created_date: "2025-07-26"

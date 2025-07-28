@@ -1,0 +1,1487 @@
+{% extends 'base.html' %}
+
+{% block title %}Predictive Model{% endblock %}
+
+{% block style %}
+{{ super() }}
+
+/* mirror the left-table loaded style */
+.editable-input {
+width: 60px; /* or whatever fits */
+background-color: #FFD580; /* loaded color */
+border: none;
+text-align: center;
+padding: 2px;
+border-radius: 2px;
+transition: background-color 0.4s ease;
+}
+.editable-input:focus {
+background-color: #FFA500; /* active color */
+outline: none;
+}
+
+/* Highlight the entire cell when “loaded” or “active” */
+#predictionTable td.loaded {
+background-color: #FFD580;
+transition: background-color 0.4s ease;
+}
+
+#predictionTable td.loaded.active {
+background-color: #FFA500;
+}
+
+/* make the avg spans look like loaded input cells */
+span.editable-number {
+display: inline-block; /* so bg fills nicely */
+background-color: #FFD580; /* same as loaded cells */
+transition: background-color 0.4s ease;
+border-radius: 2px; /* optional, for a softer look */
+}
+
+/* when the user focuses (clicks in) switch to dark orange */
+span.editable-number:focus {
+background-color: #FFA500; /* same as active input cell */
+outline: none; }
+
+/* allow any <td> in #inputTable to smoothly change BG */
+  #inputTable td {
+  transition: background-color 0.4s ease;
+  }
+
+
+  /* Paste the entire CSS from sic_model.html here without changes */
+  #inputTable tbody tr:first-child {
+  position: sticky;
+  top: 0;
+  background-color: #f4f8fb;
+  /* or any background color matching your header */
+  z-index: 2;
+  }
+
+  /* Configuration Container Styles */
+  .config-container {
+  display: flex;
+  align-items: center;
+  /* Changed from flex-start to center for vertical alignment */
+  width: calc(100% - 20px);
+  margin: 10px auto;
+  background: #f4f8fb;
+  border: 2px solid #002E88;
+  border-radius: 5px;
+  }
+
+  .tab-switch {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 150px;
+  border-right: 2px solid #002E88;
+  padding: 30px 10px; /* Add vertical padding so the line doesn't touch top/bottom */
+  margin: 20px 0; /* Add margin to separate from top/bottom of container */
+  box-sizing: border-box;
+  }
+
+  .tab-switch button {
+  padding: 10px;
+  font-size: 18px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+  background: #f4f8fb;
+  border: none;
+  text-align: left;
+  width: 100%;
+  margin-bottom: 5px;
+  }
+
+  .tab-switch button.active {
+  background: #e0e0e0;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  }
+
+  .config-content {
+  flex: 1;
+  display: flex;
+  /* Added for vertical centering */
+  flex-direction: column;
+  /* Added for vertical centering */
+  justify-content: center;
+  /* Added for vertical centering */
+  padding: 10px;
+  }
+
+  .config-content .form-group {
+  margin-bottom: 10px;
+  }
+
+  .config-content label,
+  .inference-grid label {
+  font-size: 20px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  }
+
+  .config-content select,
+  .config-content input {
+  padding: 5px;
+  margin-bottom: 10px;
+  }
+
+  /* Global Styling */
+  body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: white;
+  }
+
+  nav a.training {
+  background: #002E88;
+  color: white;
+  }
+
+  nav a.predictive {
+  background: white;
+  color: #002E88;
+  }
+
+  /* Main Layout (Tables, DOE selector, Arrows) */
+  .table-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 10px;
+  margin-top: 5px;
+  /* Add small top margin */
+  }
+
+  .table-container {
+  background: #DDE6F0;
+  border: 2px solid #002E88;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding: 5px;
+  height: calc(100vh - 300px);
+  }
+
+  table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  }
+
+  th,
+  td {
+  border: 1px solid #aaa;
+  padding: 5px;
+  text-align: center;
+  font-size: 12px;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  }
+
+  #inputTable tbody tr.selected {
+  background-color: #FFD580 !important;
+  }
+
+  .highlight-section th {
+  background-color: #002E88;
+  color: white;
+  }
+
+  .arrow-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  align-self: center;
+  margin: 0;
+  }
+
+  .arrow-icon svg {
+  width: 100px;
+  height: 100px;
+  }
+
+  .arrow-icon {
+  cursor: pointer;
+  }
+
+  #predictionTable th,
+  #predictionTable td {
+  font-size: 18px;
+  }
+
+  .popup-caption {
+  font-size: 18px;
+  margin-top: 5px;
+  margin-left: -80px;
+  }
+
+  .popup-header {
+  font-size: 24px;
+  text-align: center;
+  }
+
+  footer {
+  padding: 20px;
+  text-align: center;
+  }
+
+  .footer-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  width: fit-content;
+  margin: -15px auto;
+  }
+
+  .footer-buttons button {
+  flex: 1;
+  text-align: center;
+  min-width: 250px;
+  font-size: 16px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: #002E88;
+  color: white;
+  }
+
+  .inference-grid {
+  display: grid;
+  /* two equal columns */
+  grid-template-columns: auto auto;
+  /* two rows, auto height */
+  grid-auto-rows: auto;
+  gap: 10px 20px; /* row-gap 10px, col-gap 20px */
+  align-items: center; /* vertically center everything */
+  }
+
+  /* inline label + select */
+  .inference-grid .inline-group {
+  display: flex;
+  align-items: flex-start; /* changed from center to flex-start for top alignment */
+  gap: 8px; /* space between label and select */
+  }
+
+  /* make all selects the same width */
+  .inference-grid select {
+  min-width: 160px;
+  box-sizing: border-box;
+  }
+
+  /* optional: right-align labels if you prefer */
+  .inference-grid label {
+  /* width: 140px; text-align: right; */
+  }
+
+  /* disable any clicking on the right‐hand result images */
+  #epitaxyImage,
+  #dopingImage {
+  pointer-events: none !important;
+  cursor: default !important;
+  }
+
+  /* hide any range‐tooltip that gets injected */
+  .range-tooltip {
+  display: none !important;
+  }
+
+  /* make the “Parameter 1” number fields larger */
+  #avgThickness.editable-input,
+  #avgDoping.editable-input {
+  font-size: 20px; /* pick whatever size works for you */
+  line-height: 1.2; /* optional, to keep the vertical alignment nice */
+  }
+
+
+  /* hide until crop finishes */
+  #epitaxyImage,
+  #dopingImage {
+  visibility: hidden;
+  }
+  {% endblock %}
+
+  {% block body %}
+
+  <body>
+    <header>
+      <div class="header-left">
+        <nav>
+          <a class="training" href="/sic_data">Training Data Generation (Process 1)</a>
+          <a class="predictive" href="/sic_model">Predictive model (Process 1)</a>
+        </nav>
+      </div>
+      <div class="header-right">
+        <a href="/" class="title-link">A*STAR DOE Pathfinder</a>
+      </div>
+    </header>
+
+    <!-- Combined Configuration Container (Tabs + Content in one row) -->
+    <div class="config-container">
+      <div class="tab-switch">
+        <button id="tabTraining" class="active">Training Configuration</button>
+        <button id="tabInference">Inference Configuration</button>
+      </div>
+      <div id="configContent" class="config-content">
+        <!-- Updated Training Configuration Content -->
+        <div id="trainingConfigContent">
+          <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+            <!-- Wafer Size and Data Options -->
+            <div style="flex: 2; min-width: 250px;">
+              <div class="form-group">
+                <label for="waferSize">Wafer Size:</label>
+                <select id="waferSize" name="waferSize">
+                  <option value="6">6</option>
+                  <option value="8">8</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Data:</label>
+                <input type="radio" id="dataExperimental" name="dataOption" value="Experimental" checked />
+                <label for="dataExperimental">Experiment</label>
+                <input type="radio" id="dataExpSim" name="dataOption" value="Experimental+Simulation" />
+                <label for="dataExpSim">Experiment + Simulation</label>
+              </div>
+            </div>
+            <!-- AI Model Selections for Training -->
+            <div style="flex: 2; min-width: 300px;">
+              <div class="form-group">
+                <label for="thicknessModelTrain">AI Model for Prediction 1:</label>
+                <select id="thicknessModelTrain" name="thicknessModelTrain">
+                  <option value="NeuralNetworks">Neural Networks</option>
+                  <option value="GaussianProcess">Gaussian Process</option>
+                  <option value="SVR">Support Vector Regression</option>
+                  <option value="RandomForest">Random Forest Regression</option>
+                  <option value="GradientBoosting">Gradient Boosting Regression</option>
+                  <option value="DecisionTree">Decision Tree Regression</option>
+                  <option value="KNN">k-Nearest Neighbors</option>
+                  <option value="ExtraTrees">Extra Trees Regression</option>
+                  <option value="ElasticNet">Elastic Net Regression</option>
+                  <option value="RidgeRegression">Ridge Regression</option>
+                  <option value="LassoRegression">Lasso Regression</option>
+                  <option value="XGBoost">XGBoost Regression</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="dopingModelTrain">AI Model for Prediction 2:</label>
+                <select id="dopingModelTrain" name="dopingModelTrain">
+                  <option value="NeuralNetworks">Neural Networks</option>
+                  <option value="GaussianProcess">Gaussian Process</option>
+                  <option value="SVR">Support Vector Regression</option>
+                  <option value="RandomForest">Random Forest Regression</option>
+                  <option value="GradientBoosting">Gradient Boosting Regression</option>
+                  <option value="DecisionTree">Decision Tree Regression</option>
+                  <option value="KNN">k-Nearest Neighbors</option>
+                  <option value="ExtraTrees">Extra Trees Regression</option>
+                  <option value="ElasticNet">Elastic Net Regression</option>
+                  <option value="RidgeRegression">Ridge Regression</option>
+                  <option value="LassoRegression">Lasso Regression</option>
+                  <option value="XGBoost">XGBoost Regression</option>
+                </select>
+              </div>
+            </div>
+            <!-- Train Button in the Same Row (2 rows tall) -->
+            <div
+              style="flex: 1; min-width: 150px; text-align: right; display: flex; flex-direction: column; justify-content: center;">
+              <button id="trainButton"
+                style="font-weight: bold; min-width: 150px; height: 100px; font-size: 20px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; background: #002E88; color: white;">
+                Start data training
+              </button>
+              <span id="trainStatus" style="font-size: 16px; margin-top: 10px;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inference Configuration Content (initially hidden) -->
+        <div id="inferenceConfigContent" style="display: none;">
+          <div class="inference-grid">
+            <!-- Row 1, Col 1: ML Method -->
+            <div class="inline-group">
+              <label for="mlMethodInf">ML Method:</label>
+              <select id="mlMethodInf" name="ml_method">
+                <option value="lstm" selected>Neural Network (LSTM)</option>
+                <option value="gaussian_process">Gaussian Process</option>
+              </select>
+            </div>
+            <!-- Row 1, Col 2: Thickness Forward Model -->
+            <div class="inline-group">
+              <label for="thicknessModelInf">Forward Model 1:</label>
+              <select id="thicknessModelInf" name="thickness_model">
+                <!-- dynamically populated -->
+              </select>
+            </div>
+            <!-- Row 2, Col 1: Empty -->
+            <div></div>
+            <!-- Row 2, Col 2: Doping Forward Model -->
+            <div class="inline-group">
+              <label for="dopingModelInf">Forward Model 2:</label>
+              <select id="dopingModelInf" name="doping_model">
+                <!-- dynamically populated -->
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="table-row">
+      <!-- Left Container: Input Table and DOE Selector -->
+      <div class="table-container" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div id="inputTableWrapper" style="flex: 1; overflow-y: auto;">
+          <table id="inputTable">
+            <tbody>
+              <!-- Loaded input table data will be inserted here -->
+            </tbody>
+          </table>
+        </div>
+        <div id="doeFilterContainer" style="padding: 10px; text-align: center;">
+          <label for="doeFilter" style="font-weight: bold;">Reference DOE: </label>
+          <select id="doeFilter">
+            {% for i in range(1, 46) %}
+            <option value="{{ i }}">DOE {{ i }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <!-- Arrow Container -->
+      <div class="arrow-container">
+        <div class="arrow-icon" onclick="updatePredictionMetrics()">
+          <svg viewBox="0 0 50 50" fill="none" stroke="black" stroke-width="3" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="25" cy="25" r="20" />
+            <path d="M 15 25 L 35 25 M 30 20 L 35 25 L 30 30" />
+          </svg>
+        </div>
+        <div class="arrow-icon" onclick="updateLeftTable()">
+          <svg viewBox="0 0 50 50" fill="none" stroke="black" stroke-width="3" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="25" cy="25" r="20" />
+            <path d="M 15 25 L 35 25 M 20 20 L 15 25 L 20 30" />
+          </svg>
+        </div>
+      </div>
+      <!-- Right Container: Prediction Results -->
+      <div class="table-container">
+        <table id="predictionTable">
+          <colgroup>
+            <col style="width: 70%;" />
+            <col style="width: 30%;" />
+          </colgroup>
+          <tbody>
+            <!-- Section 1: SiC Epitaxy Thickness -->
+            <tr class="highlight-section">
+              <th colspan="2" style="font-size: 20px;">Process 1 Response 1</th>
+            </tr>
+            <tr>
+              <td rowspan="4" style="text-align: center;">
+                <img id="epitaxyImage" src="/static/predictive_model_images/popups/thickness/DOE_8_pred.png"
+                  alt="Image 1" style="width: 75%; height: 75%; max-width: 100%; max-height: 100%;" />
+              </td>
+              <td class="loaded" style="text-align: center; font-size: 20px;">
+                <strong>Prediction:</strong>
+                <input type="number" id="avgThickness" class="editable-input" min="1" max="99999" step="0.01"
+                  value="12.34" />
+              </td>
+            </tr>
+            <tr>
+              <td style="text-align: center; font-size: 20px;"><strong>Uncertainty: </strong> 0</td>
+            </tr>
+            <tr>
+              <!-- <td style="text-align: center;"><strong>Parameter 3: </strong> 0</td> -->
+            </tr>
+            <tr>
+              <!-- <td style="text-align: center;"><strong>Parameter 4: </strong> 0</td> -->
+            </tr>
+            <!-- Section 2: N Doping Uniformity -->
+            <tr class="highlight-section">
+              <th colspan="2" style="font-size: 20px;">Process 1 Response 2</th>
+            </tr>
+            <tr>
+              <td rowspan="4" style="text-align: center;">
+                <img id="dopingImage" src="/static/predictive_model_images/popups/doping/DOE_11_pred.png" alt="Image 2"
+                  style="width: 75%; height: 75%; max-width: 100%; max-height: 100%;" />
+              </td>
+              <td class="loaded" style="text-align: center; font-size: 20px;">
+                <strong>Prediction:</strong>
+                <input type="number" id="avgDoping" class="editable-input" min="1" max="99999" step="0.01"
+                  value="1.23" />
+              </td>
+            </tr>
+            <tr>
+              <td style="text-align: center; font-size: 20px;"><strong>Uncertainty: </strong> 0</td>
+            </tr>
+            <tr>
+              <!-- <td style="text-align: center;"><strong>Parameter 3: </strong> 0</td> -->
+            </tr>
+            <tr>
+              <!-- <td style="text-align: center;"><strong>Parameter 4: </strong> 0</td> -->
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      <div class="footer-buttons">
+        <button class="primary" id="saveLeftButton">Save Source Parameters</button>
+        <button class="primary" id="saveRightButton">Save Results</button>
+      </div>
+    </footer>
+
+    <a id="saveLink" style="display: none;"></a>
+    <!-- Modal Popup -->
+    <div id="imageModal"
+      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:9999;">
+      <div
+        style="background:white; margin:2% auto; padding:20px; width:95%; max-width:2400px; min-height:800px; border-radius:5px; position:relative; overflow-y: auto;">
+        <span id="closeModal"
+          style="position:absolute; top:10px; right:20px; cursor:pointer; font-size:24px;">&times;</span>
+        <div id="imageGrid">
+          <!-- Popup image grid will be inserted here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- New Script: Load Range Data and Attach Tooltips -->
+    <script>
+      // Load range data from the /get_ranges endpoint, but using Excel data
+      var cellRanges = null;
+      var currentTooltip = null;
+
+      fetch('/get_ranges')
+        .then(response => {
+          if (response.ok) return response.json();
+          else throw new Error("Ranges not available");
+        })
+        .then(data => {
+          cellRanges = data;
+          console.log("Loaded standard ranges:", cellRanges);
+        })
+        .catch(error => {
+          console.log("Range info not available:", error);
+          cellRanges = null;
+        });
+
+      // Function to remove any existing tooltip
+      function removeCurrentTooltip() {
+        if (currentTooltip) {
+          try {
+            document.body.removeChild(currentTooltip);
+          } catch (e) {
+            // Element might have been removed already
+          }
+          currentTooltip = null;
+        }
+      }
+
+      // Global variable to store current warning popup
+      var currentWarning = null;
+
+      // Function to remove any existing warning
+      function removeCurrentWarning() {
+        if (currentWarning) {
+          try {
+            document.body.removeChild(currentWarning);
+          } catch (e) {
+            // Element might have been removed already
+          }
+          currentWarning = null;
+        }
+      }
+
+      // Function to show a validation warning
+      function showValidationWarning(message, element, event) {
+        removeCurrentWarning();
+
+        var warning = document.createElement("div");
+        warning.className = "validation-warning";
+        warning.textContent = message;
+        document.body.appendChild(warning);
+
+        // Position the warning near the mouse/element
+        warning.style.left = (event.pageX + 10) + "px";
+        warning.style.top = (event.pageY + 10) + "px";
+
+        currentWarning = warning;
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(function () {
+          removeCurrentWarning();
+        }, 3000);
+      }
+
+      // Helper function to check if a value meets range and step size requirements
+      function isValidValue(value, min, max, step) {
+        // Check if within range
+        if (value < min || value > max) {
+          return false;
+        }
+
+        // Check step size if provided
+        if (step && step > 0) {
+          // Calculate how many steps from min
+          const steps = (value - min) / step;
+          // Check if it's very close to an integer
+          const tolerance = 0.0001; // Small tolerance for floating point errors
+          return Math.abs(Math.round(steps) - steps) < tolerance;
+        }
+
+        return true;
+      }
+
+      function attachRangeTooltipsToCells(selector) {
+        // (Optionally, you might remove the check so events attach even if cellRanges is null.
+        // Alternatively, leave the check if you want to avoid attaching events until ranges are loaded.)
+        if (!cellRanges) return;
+
+        var cells = document.querySelectorAll(selector);
+        cells.forEach(function (cell) {
+          if (cell.getAttribute("contenteditable") !== "true") return;
+
+          // Store original value on focus
+          cell.addEventListener("focus", function (event) {
+            cell.dataset.originalValue = cell.textContent.trim();
+          });
+
+          // Attach tooltip event handlers
+          cell.addEventListener("mouseover", function (event) {
+            removeCurrentTooltip();
+            var row = cell.getAttribute("data-row");
+            var col = cell.getAttribute("data-col");
+            if (!row || !col) return;
+            var rowKey = "row_" + row;
+            var colKey = "col_" + col;
+            if (cellRanges[rowKey] && cellRanges[rowKey][colKey]) {
+              var range = cellRanges[rowKey][colKey];
+              var tooltip = document.createElement("div");
+              tooltip.className = "range-tooltip";
+
+              var tooltipText = "Range: " + range.min + " to " + range.max;
+              if (range.step !== null && range.step !== undefined) {
+                tooltipText += "<br>Step Size: " + range.step;
+              }
+              tooltip.innerHTML = tooltipText;
+              tooltip.style.position = "absolute";
+              tooltip.style.backgroundColor = "#ffffe0";
+              tooltip.style.border = "1px solid #ccc";
+              tooltip.style.padding = "5px";
+              tooltip.style.borderRadius = "3px";
+              tooltip.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+              tooltip.style.zIndex = "1000";
+              document.body.appendChild(tooltip);
+              tooltip.style.left = (event.pageX + 10) + "px";
+              tooltip.style.top = (event.pageY + 10) + "px";
+              currentTooltip = tooltip;
+            }
+          });
+
+          cell.addEventListener("mousemove", function (event) {
+            if (currentTooltip) {
+              currentTooltip.style.left = (event.pageX + 10) + "px";
+              currentTooltip.style.top = (event.pageY + 10) + "px";
+            }
+          });
+
+          cell.addEventListener("mouseout", function (event) {
+            var relatedTarget = event.relatedTarget;
+            if (!relatedTarget || !currentTooltip || !currentTooltip.contains(relatedTarget)) {
+              removeCurrentTooltip();
+            }
+          });
+        });
+      }
+
+    </script>
+
+    <!-- Existing Scripts -->
+    <script>
+      // Tab Switcher Logic for Configurations
+      document.getElementById('tabTraining').addEventListener('click', function () {
+        this.classList.add('active');
+        document.getElementById('tabInference').classList.remove('active');
+        document.getElementById('trainingConfigContent').style.display = 'block';
+        document.getElementById('inferenceConfigContent').style.display = 'none';
+      });
+      document.getElementById('tabInference').addEventListener('click', function () {
+        this.classList.add('active');
+        document.getElementById('tabTraining').classList.remove('active');
+        document.getElementById('inferenceConfigContent').style.display = 'block';
+        document.getElementById('trainingConfigContent').style.display = 'none';
+      });
+      function adjustInputTableColumns() {
+        var table = document.getElementById("inputTable");
+        var tbody = table.querySelector("tbody");
+        if (tbody && tbody.rows.length > 0) {
+          var colCount = tbody.rows[0].cells.length;
+          var colgroup = document.createElement("colgroup");
+          var firstColWidth = 5;
+          var commandColWidth = 25;
+          var totalFixed = firstColWidth + commandColWidth;
+          var remainingColumns = colCount - 2;
+          var remainingWidth = 100 - totalFixed;
+          var remainingWidthPerCol = remainingColumns > 0 ? remainingWidth / remainingColumns : 0;
+          for (var i = 0; i < colCount; i++) {
+            var col = document.createElement("col");
+            if (i === 0) {
+              col.style.width = firstColWidth + "%";
+            } else if (i === 2) {
+              col.style.width = commandColWidth + "%";
+            } else {
+              col.style.width = remainingWidthPerCol + "%";
+            }
+            colgroup.appendChild(col);
+          }
+          var existing = table.querySelector("colgroup");
+          if (existing) { table.removeChild(existing); }
+          table.insertBefore(colgroup, table.firstChild);
+        }
+      }
+      function getQueryParam(param) {
+        var params = new URLSearchParams(window.location.search);
+        return params.get(param);
+      }
+      function loadSourceTableFromStack() {
+        var sourceStack = JSON.parse(localStorage.getItem("sourceStack") || "[]");
+        if (!sourceStack || sourceStack.length === 0) {
+          return Promise.resolve({ cell_id: "1_6E", html: null });
+        }
+        function tryTable(index) {
+          if (index < 0) {
+            return Promise.resolve({ cell_id: "1_6E", html: null });
+          }
+          var cell_id = sourceStack[index];
+          return fetch('/get_cached_data?cell_id=' + encodeURIComponent(cell_id) + '&mode=source&highlight_mode=sic_model')
+            .then(response => {
+              if (!response.ok) { return tryTable(index - 1); }
+              return response.text().then(html => ({ cell_id: cell_id, html: html }));
+            })
+            .catch(err => { return tryTable(index - 1); });
+        }
+        return tryTable(sourceStack.length - 1);
+      }
+      window.addEventListener('DOMContentLoaded', function () {
+        loadSourceTableFromStack().then(result => {
+          var cell_id = result.cell_id;
+          if (result.html) {
+            document.querySelector('#inputTable tbody').innerHTML = result.html;
+          } else {
+            fetch('/get_cached_data?cell_id=1_6E&mode=source&highlight_mode=sic_model')
+              .then(response => response.text())
+              .then(html => {
+                document.querySelector('#inputTable tbody').innerHTML = html;
+              })
+              .catch(error => console.error('Error loading default table:', error));
+          }
+          adjustInputTableColumns();
+          // Attach tooltips to left table editable cells
+          attachRangeTooltipsToCells("#inputTable td");
+          relabelInputFirstRow();
+          updateInputLastColumnTypes();
+          updateInputParameterLabels();    // ← add this
+          // ← ADD THIS:
+          randomizeAndAppendInputTable();
+        }).catch(error => { console.error('Error loading source table from stack:', error); });
+      });
+      function triggerSave(cellId, defaultFileName) {
+        var saveLink = document.getElementById('saveLink');
+        saveLink.href = '/save_table?cell_id=' + encodeURIComponent(cellId) +
+          '&file_name=' + encodeURIComponent(defaultFileName);
+        saveLink.download = defaultFileName;
+        saveLink.click();
+      }
+      var leftCellId = (new URLSearchParams(window.location.search)).get('cell_id') || '1_6E';
+      var rightCellId = 'predictionData';
+      document.getElementById('saveLeftButton').addEventListener('click', function () {
+        triggerSave(leftCellId, 'InputTable.xlsx');
+      });
+      document.getElementById('saveRightButton').addEventListener('click', function () {
+        triggerSave(rightCellId, 'PredictionResults.xlsx');
+      });
+
+      function showPopupImage(type) {
+        var modal = document.getElementById("imageModal");
+        var grid = document.getElementById("imageGrid");
+        grid.innerHTML = "";
+        var folderPath = "predictive_model_images/popups/" + type;
+        fetch('/get_images?folder=' + folderPath)
+          .then(response => response.json())
+          .then(function (files) {
+            let pairs = {};
+            files.forEach(function (filename) {
+              let match = filename.match(/DOE_(\d+)_((?:pred)|(?:true))\.png/i);
+              if (match) {
+                let idx = match[1];
+                let typeLabel = match[2].toLowerCase();
+                if (!pairs[idx]) { pairs[idx] = {}; }
+                pairs[idx][typeLabel] = filename;
+              }
+            });
+            let sortedIndexes = Object.keys(pairs).sort((a, b) => parseInt(a) - parseInt(b));
+            var headerTrue = document.createElement("h3");
+            headerTrue.textContent = "Experimental dataset";
+            headerTrue.classList.add("popup-header");
+            grid.appendChild(headerTrue);
+            var trueGrid = document.createElement("div");
+            trueGrid.style.display = "grid";
+            trueGrid.style.gridTemplateColumns = "repeat(5, 1fr)";
+            trueGrid.style.gridGap = "10px";
+            grid.appendChild(trueGrid);
+            sortedIndexes.forEach(function (idx) {
+              var pair = pairs[idx];
+              if (pair && pair.true) {
+                var container = document.createElement("div");
+                container.style.textAlign = "center";
+                var img = document.createElement("img");
+                img.src = "/static/" + folderPath + "/" + pair.true;
+                img.alt = "DOE " + idx + " True";
+                img.style.width = "100%";
+                img.style.height = "auto";
+                img.style.objectFit = "contain";
+                var label = document.createElement("div");
+                label.textContent = "DOE " + idx;
+                label.classList.add("popup-caption");
+                container.appendChild(img);
+                container.appendChild(label);
+                trueGrid.appendChild(container);
+              }
+            });
+            var headerPred = document.createElement("h3");
+            headerPred.textContent = "Predicted values";
+            headerPred.classList.add("popup-header");
+            headerPred.style.marginTop = "20px";
+            grid.appendChild(headerPred);
+            var predGrid = document.createElement("div");
+            predGrid.style.display = "grid";
+            predGrid.style.gridTemplateColumns = "repeat(5, 1fr)";
+            predGrid.style.gridGap = "10px";
+            grid.appendChild(predGrid);
+            sortedIndexes.forEach(function (idx) {
+              var pair = pairs[idx];
+              if (pair && pair.pred) {
+                var container = document.createElement("div");
+                container.style.textAlign = "center";
+                var img = document.createElement("img");
+                img.src = "/static/" + folderPath + "/" + pair.pred;
+                img.alt = "DOE " + idx + " Predicted";
+                img.style.width = "100%";
+                img.style.height = "auto";
+                img.style.objectFit = "contain";
+                var label = document.createElement("div");
+                label.textContent = "DOE " + idx;
+                label.classList.add("popup-caption");
+                container.appendChild(img);
+                container.appendChild(label);
+                predGrid.appendChild(container);
+              }
+            });
+          })
+          .catch(function (error) { console.error("Error fetching popup images:", error); });
+        modal.style.display = "block";
+      }
+      document.getElementById("closeModal").addEventListener("click", function () {
+        document.getElementById("imageModal").style.display = "none";
+      });
+      document.addEventListener("DOMContentLoaded", function () {
+        var epitaxyImg = document.getElementById("epitaxyImage");
+        var dopingImg = document.getElementById("dopingImage");
+        if (epitaxyImg) {
+          epitaxyImg.addEventListener("click", function () { showPopupImage("thickness"); });
+        }
+        if (dopingImg) {
+          dopingImg.addEventListener("click", function () { showPopupImage("doping"); });
+        }
+      });
+      document.getElementById('doeFilter').addEventListener('change', function () {
+        var selectedDOE = this.value;
+        var newCellId = selectedDOE + '_6E';
+        leftCellId = newCellId;
+        fetch('/get_cached_data?cell_id=' + encodeURIComponent(newCellId) + '&mode=source&highlight_mode=sic_model')
+          .then(function (response) {
+            if (!response.ok) { throw new Error("Network response was not ok"); }
+            return response.text();
+          })
+          .then(function (html) {
+            document.querySelector('#inputTable tbody').innerHTML = html;
+            // Reattach tooltips to new table cells after updating the table
+            attachRangeTooltipsToCells("#inputTable td");
+            relabelInputFirstRow();
+            updateInputLastColumnTypes();
+            updateInputParameterLabels();    // ← add this
+            // ← append/hide here too
+            randomizeAndAppendInputTable();
+          })
+          .catch(function (error) { console.error('Error loading DOE data:', error); });
+      });
+      document.getElementById('inferenceConfigForm')?.addEventListener('change', function () {
+        const thicknessModel = document.getElementById('thicknessModelInf').value;
+        const dopingModel = document.getElementById('dopingModelInf').value;
+        const reverseModel = document.getElementById('reverseModelInf').value;
+        console.log("Selected Inference Models:", thicknessModel, dopingModel, reverseModel);
+      });
+
+    </script>
+
+    <!-- Add this CSS for warning messages -->
+    <style>
+      .validation-warning {
+        position: absolute;
+        background-color: #ffecb3;
+        border: 1px solid #ffa000;
+        padding: 5px 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        font-size: 12px;
+        color: #d32f2f;
+        max-width: 250px;
+      }
+    </style>
+
+    <script>
+      // ...existing tooltip code...
+
+      // Global variable to store current warning popup
+      var currentWarning = null;
+
+      // Function to remove any existing warning
+      function removeCurrentWarning() {
+        if (currentWarning) {
+          try {
+            document.body.removeChild(currentWarning);
+          } catch (e) {
+            // Element might have been removed already
+          }
+          currentWarning = null;
+        }
+      }
+
+      // Function to show a validation warning
+      function showValidationWarning(message, element, event) {
+        removeCurrentWarning();
+
+        var warning = document.createElement("div");
+        warning.className = "validation-warning";
+        warning.textContent = message;
+        document.body.appendChild(warning);
+
+        // Position the warning near the mouse/element
+        warning.style.left = (event.pageX + 10) + "px";
+        warning.style.top = (event.pageY + 10) + "px";
+
+        currentWarning = warning;
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(function () {
+          removeCurrentWarning();
+        }, 3000);
+      }
+
+      // Helper function to check if a value meets range and step size requirements
+      function isValidValue(value, min, max, step) {
+        // Check if within range
+        if (value < min || value > max) {
+          return false;
+        }
+
+        // Check step size if provided
+        if (step && step > 0) {
+          // Calculate how many steps from min
+          const steps = (value - min) / step;
+          // Check if it's very close to an integer
+          const tolerance = 0.0001; // Small tolerance for floating point errors
+          return Math.abs(Math.round(steps) - steps) < tolerance;
+        }
+
+        return true;
+      }
+
+      function updateEntireTable(cellId) {
+        return new Promise((resolve, reject) => {
+          var table = document.getElementById("inputTable");
+          var updatedData = [];
+          // Loop through table rows and cells to collect updated values.
+          for (let i = 0; i < table.rows.length; i++) {
+            let rowData = [];
+            for (let j = 0; j < table.rows[i].cells.length; j++) {
+              rowData.push(table.rows[i].cells[j].textContent.trim());
+            }
+            updatedData.push(rowData);
+          }
+
+          // Send the updated table data as JSON to the new endpoint.
+          fetch('/update_entire_table', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cell_id: cellId,
+              data: updatedData
+            })
+          })
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              } else {
+                reject("Server failed to update table.");
+              }
+            })
+            .then(data => resolve(data))
+            .catch(err => reject(err));
+        });
+      }
+
+      /**
+              * Update the second cell of a row (the “value” column) by rebuilding its innerHTML
+              * from the existing label plus the new value. Falls back to textContent if something
+              * doesn’t match.
+              */
+      function updateCell(row, newValue) {
+        // Usually your value‐cells are the second <td>
+        const cell = row.cells[1];
+        if (!cell) return;
+        // Pull out the label text (everything up to the colon)
+        const labelMatch = cell.textContent.split(':', 1)[0];
+        if (labelMatch) {
+          cell.innerHTML = `<strong>${labelMatch.trim()}:</strong> ${newValue}`;
+        } else {
+          cell.textContent = newValue;
+        }
+      }
+
+    </script>
+    <script>
+      // Function to update the thickness model dropdown based on selected ML method.
+      function updateModelDropdown() {
+        var mlMethod = document.getElementById('mlMethodInf').value;
+        fetch('/get_thickness_models?ml_method=' + encodeURIComponent(mlMethod))
+          .then(response => response.json())
+          .then(data => {
+            var thicknessSelect = document.getElementById('thicknessModelInf');
+            // Clear previous options.
+            thicknessSelect.innerHTML = "";
+
+            // If no models are returned, add the default values.
+            if (data.length === 0) {
+              var defaultOptions = ["v5.2.2_73thick25doping", "v6_73thick25doping"];
+              defaultOptions.forEach(function (optionVal) {
+                var option = document.createElement('option');
+                option.value = optionVal;
+                option.textContent = optionVal;
+                thicknessSelect.appendChild(option);
+              });
+            } else {
+              // Otherwise, populate with the data returned from the server.
+              data.forEach(function (modelFile) {
+                var option = document.createElement('option');
+                option.value = modelFile;
+                option.textContent = modelFile;
+                thicknessSelect.appendChild(option);
+              });
+            }
+          })
+          .catch(error => console.error("Error fetching thickness models:", error));
+      }
+
+
+      // Initially populate the thickness model dropdown when the page loads.
+      document.addEventListener('DOMContentLoaded', function () {
+        updateModelDropdown();
+      });
+
+      // Update the model file options every time ML method selection changes.
+      document.getElementById('mlMethodInf').addEventListener('change', function () {
+        updateModelDropdown();
+      });
+    </script>
+    <script>
+      // 1) single source of truth for populating both dropdowns
+      function loadInferenceModels() {
+        const ml = document.getElementById('mlMethodInf').value;
+
+        // fetch both lists in parallel
+        Promise.all([
+          fetch(`/get_thickness_models?ml_method=${encodeURIComponent(ml)}`).then(r => r.json()),
+          fetch(`/get_doping_models?ml_method=${encodeURIComponent(ml)}`).then(r => r.json())
+        ])
+          .then(([thickFiles, dopeFiles]) => {
+            const mappings = [
+              { id: 'thicknessModelInf', files: thickFiles },
+              { id: 'dopingModelInf', files: dopeFiles }
+            ];
+            mappings.forEach(({ id, files }) => {
+              const sel = document.getElementById(id);
+              sel.innerHTML = '';             // clear old
+              files.forEach(f => {
+                sel.add(new Option(f, f));    // append new
+              });
+            });
+          })
+          .catch(err => console.error('Error loading inference models:', err));
+      }
+
+      // 2) wire it up
+      document.addEventListener('DOMContentLoaded', loadInferenceModels);
+      document.getElementById('mlMethodInf')
+        .addEventListener('change', loadInferenceModels);
+
+      // call it when you flip to the inference tab
+      document.getElementById('tabInference')
+        .addEventListener('click', loadInferenceModels);
+
+      document.getElementById('trainButton').addEventListener('click', function () {
+        const status = document.getElementById('trainStatus');
+        let seconds = 0;
+        status.textContent = "Training… 0 seconds";
+        const timer = setInterval(() => {
+          seconds++;
+          status.textContent = `Training… ${seconds} seconds`;
+          if (seconds === 5) {
+            clearInterval(timer);
+            status.textContent = "Training completes.";
+          }
+        }, 1000);
+      });
+
+      // helper to “flash” into dark orange
+      function notifyCellUpdated(cell) {
+        // smooth transition
+        cell.style.transition = "background-color 0.3s ease";
+        // dark-orange from sic_data active state
+        cell.style.backgroundColor = "#FFA500";
+
+        // after 400ms (same as CSS transition), clear it
+        setTimeout(() => {
+          cell.style.backgroundColor = "";
+        }, 400);
+      }
+
+      function updateLeftTable() {
+        const highlighted = document.querySelectorAll('#inputTable td.highlight-cell');
+        highlighted.forEach(cell => {
+          // if you still need to skip column 2, keep this
+          const col = parseInt(cell.dataset.col, 10);
+          if (col === 2) return;
+
+          // generate a random integer 0–1000
+          const rand = Math.floor(Math.random() * 1000);
+          cell.textContent = rand;
+
+          // flash it if you like
+          notifyCellUpdated(cell);
+        });
+      }
+
+      // only relabel when we're on a source-parameter table in sic_model
+      function updateInputParameterLabels() {
+        // skip if it’s a response table (R1/R2)
+        if (!leftCellId) {
+          return;
+        }
+        // skip the header row, start labeling at row index=1
+        const rows = document.querySelectorAll('#inputTable tbody tr');
+        for (let i = 1; i < rows.length; i++) {
+          const cell = rows[i].cells[2];
+          if (cell) {
+            cell.textContent = `Parameter ${i}`;
+          }
+        }
+      }
+
+      // 1) Relabel the very first row of #inputTable to "Column 1", "Column 2", …
+      function relabelInputFirstRow() {
+        const tbody = document.querySelector('#inputTable tbody');
+        const firstRow = tbody && tbody.querySelector('tr:first-child');
+        if (!firstRow) return;
+        Array.from(firstRow.cells).forEach((cell, idx) => {
+          cell.textContent = `Column ${idx + 1}`;
+        });
+      }
+
+
+      // Left-table version
+      function updateInputLastColumnTypes() {
+        const map = { bell: 'Type 1', vent: 'Type 2', on: 'Type 3' };
+        document
+          .querySelectorAll('#inputTable tbody tr:not(:first-child)')
+          .forEach(row => {
+            const cell = row.cells[row.cells.length - 1];
+            if (!cell) return;
+            const out = cell.textContent
+              .trim()
+              .split('/')
+              .map(s => s.trim().toLowerCase())
+              .map(k => map[k] || k)
+              .join('/ ');
+            cell.textContent = out;
+          });
+      }
+
+    </script>
+
+    <script>
+      // Call this once on page load (or after you recreate the inputs)
+      function enforceNumberInputs() {
+        document.querySelectorAll('input.editable-input[type=number]').forEach(input => {
+          const min = parseFloat(input.min);
+          const max = parseFloat(input.max);
+          const step = parseFloat(input.step);
+
+          // Whenever the user leaves the field or changes value,
+          // clamp it and snap it to the nearest step.
+          function clampAndSnap() {
+            let val = parseFloat(input.value);
+            if (isNaN(val)) {
+              input.value = min.toFixed(2);
+              return;
+            }
+            // clamp to [min, max]
+            if (val < min) val = min;
+            if (val > max) val = max;
+            // snap to nearest multiple of step
+            const k = Math.round((val - min) / step);
+            val = min + k * step;
+            // write it back, formatted
+            input.value = val.toFixed(2);
+          }
+          // Also on “enter” or any change
+          input.addEventListener('change', clampAndSnap);
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', enforceNumberInputs);
+      // If you recreate those inputs dynamically after a prediction:
+      // just call enforceNumberInputs() again.
+    </script>
+
+    <script>
+      // call this after your other scripts have defined removeCurrentTooltip() and currentTooltip
+      function attachAvgTooltips() {
+        const configs = {
+          avgThickness: { min: 10, max: 15, step: 0.01 },
+          avgDoping: { min: 1, max: 2, step: 0.01 }
+        };
+        Object.entries(configs).forEach(([id, { min, max, step }]) => {
+          const inp = document.getElementById(id);
+          if (!inp) return;
+          inp.addEventListener('mouseover', e => {
+            removeCurrentTooltip();
+            const tip = document.createElement('div');
+            tip.className = 'range-tooltip';
+            tip.innerHTML = `Range: ${min} to ${max}<br>Step: ${step}`;
+            document.body.appendChild(tip);
+            tip.style.left = (e.pageX + 10) + 'px';
+            tip.style.top = (e.pageY + 10) + 'px';
+            currentTooltip = tip;
+          });
+          inp.addEventListener('mousemove', e => {
+            if (currentTooltip) {
+              currentTooltip.style.left = (e.pageX + 10) + 'px';
+              currentTooltip.style.top = (e.pageY + 10) + 'px';
+            }
+          });
+          inp.addEventListener('mouseout', () => {
+            removeCurrentTooltip();
+          });
+        });
+      }
+
+      // run on load
+      document.addEventListener('DOMContentLoaded', attachAvgTooltips);
+    </script>
+
+    <script>
+      /**
+       * For the left‐hand source table (#inputTable):
+       *  • Randomize cols ≥4 of every existing row (i>0).
+       *  • Then append 6 rows (90…95):
+       *      col1 = row number
+       *      col2 = ""
+       *      col3 = "Parameter <rowNum>"
+       *      cols≥4 = random 0–1000
+       */
+      function randomizeAndAppendInputTable() {
+        const tbody = document.querySelector('#inputTable tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        if (rows.length === 0) return;
+
+        // 1) randomize existing rows (skip header, row idx 0)
+        rows.slice(1).forEach(row => {
+          row.querySelectorAll('td').forEach((cell, j) => {
+            if (j >= 3) {
+              cell.textContent = Math.floor(Math.random() * 1000);
+            }
+          });
+        });
+
+        // 2) append rows 90→95
+        const colCount = rows[0].cells.length;
+        for (let k = 0; k < 6; k++) {
+          const newRow = document.createElement('tr');
+          const rnum = 90 + k;
+          for (let j = 0; j < colCount; j++) {
+            const td = document.createElement('td');
+            if (j === 0) {
+              td.textContent = rnum;
+            } else if (j === 1) {
+              td.textContent = '';
+            } else if (j === 2) {
+              td.textContent = `Parameter ${rnum}`;
+            } else {
+              td.textContent = Math.floor(Math.random() * 1000);
+            }
+            newRow.appendChild(td);
+          }
+          tbody.appendChild(newRow);
+        }
+      }
+    </script>
+
+    <script>
+      // 1) Holders for the two image‐lists
+      window.thicknessPredImages = [];
+      window.dopingPredImages = [];
+
+      // 2) Fetch and filter for only “_pred.png” in each folder
+      Promise.all([
+        fetch('/get_images?folder=predictive_model_images/popups/thickness').then(r => r.json()),
+        fetch('/get_images?folder=predictive_model_images/popups/doping').then(r => r.json())
+      ]).then(([thickFiles, dopeFiles]) => {
+        window.thicknessPredImages = thickFiles.filter(f => f.endsWith('_pred.png'));
+        window.dopingPredImages = dopeFiles.filter(f => f.endsWith('_pred.png'));
+      }).catch(console.error);
+
+    </script>
+
+    <script>
+      /**
+       * Crop the rightmost `cropRatio` percentage off an image URL,
+       * and then set it into the given <img> element.
+       */
+      function cropAndSetImage(imgId, src, cropFraction) {
+        const imgElement = document.getElementById(imgId);
+        // start hidden; will un-hide when done
+        imgElement.style.visibility = 'hidden';
+
+        const original = new Image();
+        original.crossOrigin = 'anonymous'; // if needed
+        original.onload = () => {
+          const w = original.width;
+          const h = original.height;
+          const cropW = w * (1 - cropFraction);
+          const c = document.createElement('canvas');
+          c.width = cropW;
+          c.height = h;
+          const ctx = c.getContext('2d');
+          // draw only left (1 - cropFraction) portion
+          ctx.drawImage(original, 0, 0, cropW, h, 0, 0, cropW, h);
+          // now swap in the cropped data URL
+          imgElement.src = c.toDataURL();
+          // finally, reveal
+          imgElement.style.visibility = 'visible';
+        };
+        original.src = src;
+      }
+
+    </script>
+    <script>
+      // helper: randomize all the numbers in the table
+      function randomizePredictionTable() {
+        const table = document.getElementById('predictionTable');
+        if (!table) return;
+        // 1) Randomize all <input type="number">
+        table.querySelectorAll('input[type="number"]').forEach(input => {
+          input.value = Math.floor(Math.random() * 1000);
+        });
+        // 2) Randomize each <td> with a <strong> label (non-input, non-img)
+        table.querySelectorAll('td').forEach(td => {
+          if (td.querySelector('img')) return;
+          if (td.querySelector('input')) return;
+          const lbl = td.querySelector('strong')?.textContent.trim();
+          if (lbl) {
+            // If the label is "Uncertainty:", use 0–10, else 0–1000
+            if (lbl.startsWith('Uncertainty')) {
+              td.innerHTML = `<strong>Uncertainty: </strong> ${Math.floor(Math.random() * 11)}`;
+            } else {
+              td.innerHTML = `<strong>${lbl}</strong> ${Math.floor(Math.random() * 1000)}`;
+            }
+          }
+        });
+      }
+
+      // helper: crop and swap an image, then show it
+      function cropAndSetImage(imgId, src, cropFraction) {
+        const imgEl = document.getElementById(imgId);
+        imgEl.style.visibility = 'hidden';
+        const orig = new Image();
+        orig.crossOrigin = 'anonymous';
+        orig.onload = () => {
+          const w = orig.width, h = orig.height;
+          const cw = w * (1 - cropFraction);
+          const c = document.createElement('canvas');
+          c.width = cw; c.height = h;
+          c.getContext('2d').drawImage(orig, 0, 0, cw, h, 0, 0, cw, h);
+          imgEl.src = c.toDataURL();
+          imgEl.style.visibility = 'visible';
+        };
+        orig.src = src;
+      }
+
+      // the one-and-only override of updatePredictionMetrics
+      window.updatePredictionMetrics = function () {
+        // 1) Re-randomize all numbers
+        randomizePredictionTable();
+
+        // 2) Re-pick & crop new random thickness "_pred.png"
+        if (window.thicknessPredImages?.length) {
+          const t = window.thicknessPredImages;
+          const choice = t[Math.floor(Math.random() * t.length)];
+          cropAndSetImage(
+            'epitaxyImage',
+            `/static/predictive_model_images/popups/thickness/${choice}`,
+            0.16
+          );
+        }
+
+        // 3) Re-pick & crop new random doping "_pred.png"
+        if (window.dopingPredImages?.length) {
+          const d = window.dopingPredImages;
+          const choice = d[Math.floor(Math.random() * d.length)];
+          cropAndSetImage(
+            'dopingImage',
+            `/static/predictive_model_images/popups/doping/${choice}`,
+            0.16
+          );
+        }
+      };
+
+      // fire once on page load to initialize
+      document.addEventListener('DOMContentLoaded', updatePredictionMetrics);
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // grab their initial srcs
+        const epi = document.getElementById('epitaxyImage');
+        const dop = document.getElementById('dopingImage');
+        if (epi && epi.src) {
+          cropAndSetImage('epitaxyImage', epi.src, 0.16);
+        }
+        if (dop && dop.src) {
+          cropAndSetImage('dopingImage', dop.src, 0.16);
+        }
+      });
+    </script>
+
+  </body>
+  {% endblock %}
